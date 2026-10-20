@@ -49,8 +49,31 @@ def _install_fake_genlayer() -> None:
         def view(fn):
             return fn
 
+    class TreeMap(dict):
+        """`genlayer.storage.TreeMap`: a persistent map. `TreeMap[str, str]` is the class."""
+
+        def __class_getitem__(cls, item):
+            return cls
+
+    class DynArray(list):
+        """`genlayer.storage.DynArray`: a persistent list."""
+
+        def __class_getitem__(cls, item):
+            return cls
+
     class _Contract:
-        """Base class: a contract can read its own balance."""
+        """Base class: a contract can read its own balance. Typed storage fields start empty,
+        as they do in GenVM."""
+
+        def __new__(cls, *args, **kwargs):
+            obj = super().__new__(cls)
+            for name, kind in getattr(cls, "__annotations__", {}).items():
+                label = kind if isinstance(kind, str) else getattr(kind, "__name__", "")
+                if label.startswith("TreeMap"):
+                    setattr(obj, name, TreeMap())
+                elif label.startswith("DynArray"):
+                    setattr(obj, name, DynArray())
+            return obj
 
         @property
         def balance(self):
@@ -87,7 +110,8 @@ def _install_fake_genlayer() -> None:
             return leader_fn()
 
     def _render(url, mode="text"):
-        page = gl.page
+        # gl.pages maps a URL to its text (or an Exception); anything else returns gl.page.
+        page = gl.pages.get(url, gl.page)
         if isinstance(page, Exception):
             raise page
         return page
@@ -120,6 +144,11 @@ def _install_fake_genlayer() -> None:
     gl_types.Address = str
     gl.types = gl_types
     sys.modules["genlayer.types"] = gl_types
+    gl_storage = types.ModuleType("genlayer.storage")
+    gl_storage.TreeMap = TreeMap
+    gl_storage.DynArray = DynArray
+    gl.storage = gl_storage
+    sys.modules["genlayer.storage"] = gl_storage
     gl.eq_principle = _EqPrinciple()
     gl.nondet = types.SimpleNamespace(
         web=types.SimpleNamespace(render=_render),
@@ -132,6 +161,7 @@ def _install_fake_genlayer() -> None:
     gl.comparative_fails = False
     gl.prompts = []
     gl.balance = 0
+    gl.pages = {}
     gl.transfers = []
     sys.modules["genlayer"] = gl
 
@@ -175,6 +205,7 @@ def reset(gl) -> None:
     gl.comparative_fails = False
     gl.prompts = []
     gl.balance = 0
+    gl.pages = {}
     gl.transfers = []
     gl.message.value = 0
     gl.message.sender_address = "0x1111111111111111111111111111111111111111"

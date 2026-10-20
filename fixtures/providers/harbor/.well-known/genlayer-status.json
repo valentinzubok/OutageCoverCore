@@ -1,0 +1,10 @@
+{
+  "service": "Harbor API",
+  "operator": "Harbor (demo provider for OutageCover)",
+  "status_pages": [
+    "https://raw.githubusercontent.com/valentinzubok/OutageCover/main/web/public/fixtures/providers/harbor/api.html",
+    "https://raw.githubusercontent.com/valentinzubok/OutageCover/main/web/public/fixtures/providers/harbor/history.html",
+    "https://raw.githubusercontent.com/valentinzubok/OutageCover/main/web/public/fixtures/providers/harbor/calm.html"
+  ],
+  "note": "Published by whoever controls this site root. In the OutageCover demo the site root is a folder of the OutageCover repository."
+}
